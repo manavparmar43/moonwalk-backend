@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Restaurant {
+  id              String   @id @default(uuid())
+  name            String
+  kitchenCapacity Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  users            User[]
+  menuItems        MenuItem[]
+  orders           Order[]
+  kitchenResources KitchenResource[]
+}
+
+model User {
+  id           String     @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         String     @default("STAFF")
+  isRestroAdmin Boolean   @default(true)
+  isSuperUser   Boolean   @default(false)
+  createdAt    DateTime   @default(now())
+}
+
+model KitchenResource {
+  id                  String     @id @default(uuid())
+  restaurantId        String
+  restaurant          Restaurant @relation(fields: [restaurantId], references: [id])
+  chefName            String
+  chefEmail           String
+  status              String     @default("active")
+  maxConcurrentOrders Int        @default(1)
+  createdAt           DateTime   @default(now())
+
+  orders Order[]
+}
+
+model MenuItem {
+  id              String     @id @default(uuid())
+  restaurantId    String
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id])
+  name            String
+  prepTimeMinutes Int
+  price           Float      @default(0)
+  isAvailable     Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+}
+
+model Order {
+  id            String     @id @default(uuid())
+  orderNum      Int
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  customerName  String
+  customerEmail String
+  status        String     @default("PENDING")
+  orderPriority String     @default("normal")
+  algorithmType String     @default("Queue")
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime   @default(now())
+
+  chefId   String?
+  chef     KitchenResource? @relation(fields: [chefId], references: [id], onDelete: SetNull)
+  chefName String?
+
+  estimatedDuration Int?
+
+  items         Json @default("[]")
+  statusHistory Json @default("[]")
+
+  @@unique([restaurantId, orderNum])
+}
